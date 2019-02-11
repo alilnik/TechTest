@@ -8,6 +8,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,7 +20,7 @@ import static com.drivemode.tech_test.MainActivity.TAG;
 public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
 
     private URL url;
-    private PersonView activityRef;
+    private WeakReference<PersonView> activityRef;
 
     JsonFetcherAsyncTask(String url, MainActivity activity) {
 
@@ -29,13 +30,13 @@ public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
             e.printStackTrace();
         }
 
-        this.activityRef = activity;
+        this.activityRef = new WeakReference<PersonView>(activity);
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        activityRef.showProgress();
+        activityRef.get().showProgress();
     }
 
     @Override
@@ -81,12 +82,12 @@ public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
     @Override
     protected void onPostExecute(@Nullable JSONObject jsonObject) {
         super.onPostExecute(jsonObject);
-        activityRef.hideProgress();
+        activityRef.get().hideProgress();
         try {
             if (jsonObject != null) {
-                activityRef.setData(convert(jsonObject.getJSONArray("data")));
+                activityRef.get().setData(convert(jsonObject.getJSONArray("data")));
             } else {
-                activityRef.warnEmptyLIst();
+                activityRef.get().warnEmptyLIst();
             }
         } catch (JSONException e) {
             e.printStackTrace();

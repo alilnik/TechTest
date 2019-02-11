@@ -1,26 +1,25 @@
 package com.drivemode.tech_test;
-
-import android.content.Context;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 import android.util.Log;
-
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.drivemode.tech_test.MainActivity.TAG;
 
 public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
 
     private URL url;
-    private WeakReference<MainActivity> activityRef;
+    private PersonView activityRef;
 
     JsonFetcherAsyncTask(String url, MainActivity activity) {
 
@@ -30,14 +29,13 @@ public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
             e.printStackTrace();
         }
 
-        this.activityRef = new WeakReference<>(activity);
+        this.activityRef = activity;
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        activityRef.get().showProgress();
-        activityRef.get().getDoWorkBtn().setActivated(false);
+        activityRef.showProgress();
     }
 
     @Override
@@ -81,14 +79,34 @@ public class JsonFetcherAsyncTask extends AsyncTask<Void, Void, JSONObject> {
     }
 
     @Override
-    protected void onPostExecute(JSONObject jsonObject) {
+    protected void onPostExecute(@Nullable JSONObject jsonObject) {
         super.onPostExecute(jsonObject);
-        activityRef.get().hideProgress();
+        activityRef.hideProgress();
         try {
-            activityRef.get().setData(jsonObject.getJSONArray("data"));
+            if (jsonObject != null) {
+                activityRef.setData(convert(jsonObject.getJSONArray("data")));
+            } else {
+                activityRef.warnEmptyLIst();
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        activityRef.get().getDoWorkBtn().setActivated(true);
+    }
+
+    List<Person> convert(JSONArray array) {
+        List<Person> list = new ArrayList<>(array.length());
+        JSONObject jsonObject;
+        for (int i = 0, count = array.length(); i < count; i++) {
+            try {
+                if ((jsonObject = array.getJSONObject(i)) != null) {
+                    list.add(new Person(jsonObject));
+                } else {
+                    list.add(new Person());
+                }
+            } catch (JSONException e) {
+                Log.e(TAG, "invalid json", e);
+            }
+        }
+        return list;
     }
 }

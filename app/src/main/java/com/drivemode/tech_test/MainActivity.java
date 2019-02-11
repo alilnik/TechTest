@@ -1,11 +1,9 @@
 package com.drivemode.tech_test;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -13,26 +11,17 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.ref.WeakReference;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PersonView{
 
     public static final String TAG = MainActivity.class.getSimpleName();
     private View progress;
     private Button doWorkBtn;
+    ArrayList<Person> personList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,42 +40,44 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void setData(JSONArray array) {
-        ListAdapter adapter = new MyAdapter(this, convert(array));
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList("persons", personList);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        setData(savedInstanceState.<Person>getParcelableArrayList("persons"));
+    }
+
+    public void setData(List<Person> personList) {
+        this.personList = (ArrayList<Person>) personList;
+        ListAdapter adapter = new MyAdapter(this, personList);
         ListView listView = findViewById(R.id.list);
         listView.setAdapter(adapter);
     }
 
-    List<JSONObject> convert(JSONArray array) {
-        List<JSONObject> list = new ArrayList<>(array.length());
-        for (int i = 0, count = array.length(); i < count; i++) {
-            try {
-                list.add(i, array.getJSONObject(i));
-            } catch (JSONException e) {
-                Log.e(TAG, "invalid json", e);
-            }
-        }
-        return list;
+    @Override
+    public void warnEmptyLIst() {
+        Toast.makeText(this, "Person list is not present.", Toast.LENGTH_LONG).show();
     }
 
-    void showProgress() {
+    public void showProgress() {
         progress.setVisibility(View.VISIBLE);
+        doWorkBtn.setActivated(false);
     }
 
-    void hideProgress() {
+    public void hideProgress() {
         progress.setVisibility(View.GONE);
-    }
-
-    public Button getDoWorkBtn() {
-        return doWorkBtn;
+        doWorkBtn.setActivated(true);
     }
 
 
-    private static class MyAdapter extends ArrayAdapter<JSONObject> {
+    private static class MyAdapter extends ArrayAdapter<Person> {
 
-        private Person person;
-
-        MyAdapter(Context context, List<JSONObject> list) {
+        MyAdapter(Context context, List<Person> list) {
             super(context, android.R.layout.simple_list_item_2, android.R.id.text1, list);
         }
 
@@ -96,16 +87,8 @@ public class MainActivity extends AppCompatActivity {
             View view = super.getView(position, convertView, parent);
             TextView nameTextView = view.findViewById(android.R.id.text1);
             TextView descriptionTextView = view.findViewById(android.R.id.text2);
-
-            JSONObject jsonItem = getItem(position);
-            if (jsonItem != null){
-                person = new Person(jsonItem);
-            } else {
-                person = new Person();
-            }
-
-            nameTextView.setText(person.getMainInfo());
-            descriptionTextView.setText(person.getAdditionalInfo());
+            nameTextView.setText(getItem(position).getMainInfo());
+            descriptionTextView.setText(getItem(position).getAdditionalInfo());
 
             return view;
         }
